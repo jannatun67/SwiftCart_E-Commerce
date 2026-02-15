@@ -1,440 +1,298 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SwiftCart | advanced e‑commerce</title>
-    <!-- Tailwind + Font Awesome + basic styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- GSAP & Three.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <style>
-        /* custom loader, modal, 3d canvas background */
-        .spinner { border: 4px solid rgba(0,0,0,0.1); border-top-color: #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        #three-canvas { position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0.2; }
-        .modal-overlay { background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
-        /* custom scroll / hide while loading */
-        .product-grid { transition: opacity 0.3s; }
-        .category-active { background: #1e3a8a; color: white; border-color: #1e3a8a; }
-        /* humber menu unique — liquid morph */
-        .hamburger-lines { width: 30px; height: 24px; position: relative; transform: rotate(0deg); transition: .5s ease-in-out; cursor: pointer; }
-        .hamburger-lines span { display: block; position: absolute; height: 3px; width: 100%; background: #1f2937; border-radius: 9px; opacity: 1; left: 0; transform: rotate(0deg); transition: .25s ease-in-out; }
-        .hamburger-lines span:nth-child(1) { top: 0px; }
-        .hamburger-lines span:nth-child(2) { top: 10px; width: 80%; }
-        .hamburger-lines span:nth-child(3) { top: 20px; }
-        .hamburger-open span:nth-child(1) { transform: rotate(135deg); top: 10px; background: #3b82f6; }
-        .hamburger-open span:nth-child(2) { opacity: 0; left: -60px; }
-        .hamburger-open span:nth-child(3) { transform: rotate(-135deg); top: 10px; background: #3b82f6; }
-        .mobile-menu { position: fixed; top: 0; right: -280px; width: 260px; height: 100vh; background: rgba(255,255,255,0.95); backdrop-filter: blur(12px); box-shadow: -10px 0 30px rgba(0,0,0,0.1); padding: 6rem 1.5rem; transition: none; z-index: 40; border-left: 1px solid rgba(255,255,255,0.3); }
-        .mobile-menu a { display: block; padding: 1rem; font-size: 1.2rem; border-bottom: 1px solid #e5e7eb; transform: translateX(20px); opacity: 0; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SwiftCart · advanced e‑commerce UI</title>
+  <!-- Tailwind via CDN + basic layer (no svg icons, only Font Awesome) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome 6 (free) for icons (no SVG) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- GSAP & Three.js (minimal placeholder for advanced feel) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    /* micro custom for unique hamburger & loader */
+    .hamburger-line { transition: all 0.3s ease; }
+    .open .hamburger-line:nth-child(1) { transform: rotate(45deg) translate(8px, 6px); }
+    .open .hamburger-line:nth-child(2) { opacity: 0; }
+    .open .hamburger-line:nth-child(3) { transform: rotate(-45deg) translate(8px, -6px); }
+    .spinner-minimal { border: 3px solid rgba(255,255,255,0.2); border-top: 3px solid #ffffff; border-radius: 50%; width: 2rem; height: 2rem; animation: spin 0.8s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .category-active { background: #1e293b; color: white; border-color: #1e293b; }
+    /* card image fix */
+    .card-img { height: 180px; object-fit: contain; background: #f9f9f9; mix-blend-mode: multiply; }
+    /* three.js canvas background (hero accent) */
+    #three-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: 0.2; }
+    .hero-content { z-index: 2; }
+  </style>
 </head>
-<body class="bg-gray-50 font-sans antialiased overflow-x-hidden">
+<body class="bg-gray-50 font-sans antialiased">
 
-    <!-- 3D background (hero enhancement) -->
-    <canvas id="three-canvas" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1; opacity:0.15;"></canvas>
-
-    <!-- Navbar -->
-    <nav class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
-        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
-            <!-- left logo -->
-            <a href="index.html" class="text-2xl font-bold text-blue-600 drop-shadow-md">SwiftCart<span class="text-gray-800">⁺</span></a>
-
-            <!-- center menu (desktop) -->
-            <div class="hidden md:flex space-x-8 text-gray-700 font-medium">
-                <a href="#" class="hover:text-blue-600 transition">Home</a>
-                <a href="#" class="hover:text-blue-600 transition">Products</a>
-                <a href="#" class="hover:text-blue-600 transition">About</a>
-                <a href="#" class="hover:text-blue-600 transition">Contact</a>
-            </div>
-
-            <!-- right icons & cart -->
-            <div class="flex items-center space-x-5">
-                <a href="cart.html" class="relative text-gray-700 hover:text-blue-600 text-xl">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span id="cart-count" class="absolute -top-2 -right-3 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
-                </a>
-                <!-- unique humber (animated) -->
-                <div id="hamburger-icon" class="md:hidden hamburger-lines z-50">
-                    <span></span><span></span><span></span>
-                </div>
-            </div>
+  <!-- NAVBAR (unique hamburger for mobile) -->
+  <nav class="bg-white shadow-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <!-- left: logo -->
+        <div class="flex items-center space-x-2">
+          <i class="fa-brands fa-shopify text-3xl text-indigo-700"></i>
+          <span class="text-2xl font-bold tracking-tight text-gray-800">SwiftCart</span>
         </div>
-    </nav>
 
-    <!-- mobile menu overlay (unique slide + gsap) -->
-    <div id="mobileMenu" class="mobile-menu">
-        <a href="#"><i class="fas fa-home mr-3"></i>Home</a>
-        <a href="#"><i class="fas fa-box mr-3"></i>Products</a>
-        <a href="#"><i class="fas fa-info-circle mr-3"></i>About</a>
-        <a href="#"><i class="fas fa-envelope mr-3"></i>Contact</a>
-        <div class="absolute bottom-10 left-6 text-gray-500 text-sm">⚡ swift experience</div>
+        <!-- desktop menu (center) -->
+        <div class="hidden md:flex space-x-8 text-gray-700 font-medium">
+          <a href="#" class="border-b-2 border-indigo-600 pb-1 text-indigo-600">Home</a>
+          <a href="/products.html" class="hover:text-indigo-600 transition">Products</a>
+          <a href="#" class="hover:text-indigo-600 transition">About</a>
+          <a href="#" class="hover:text-indigo-600 transition">Contact</a>
+        </div>
+
+        <!-- right: cart with count (dynamic) & mobile hamburger (unique) -->
+        <div class="flex items-center space-x-5">
+          <!-- cart icon with count -->
+          <div class="relative cursor-pointer group" id="cartIcon" onclick="window.location.href='cart.html'">
+            <i class="fa-solid fa-bag-shopping text-2xl text-gray-700"></i>
+            <span id="cartCountBadge" class="absolute -top-2 -right-2 bg-rose-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">0</span>
+          </div>
+          <!-- unique hamburger (animated) -->
+          <button id="mobileMenuBtn" class="md:hidden flex flex-col space-y-1.5 p-2 rounded-lg hover:bg-gray-100 transition">
+            <span class="hamburger-line w-7 h-0.5 bg-gray-700"></span>
+            <span class="hamburger-line w-7 h-0.5 bg-gray-700"></span>
+            <span class="hamburger-line w-7 h-0.5 bg-gray-700"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- mobile menu dropdown (hidden by default) -->
+      <div id="mobileMenu" class="hidden md:hidden bg-white border-t pb-3 pt-2 px-2 space-y-1">
+        <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-indigo-700 bg-indigo-50">Home</a>
+        <a href="/products.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Products</a>
+        <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">About</a>
+        <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Contact</a>
+      </div>
     </div>
+  </nav>
 
-    <main class="container mx-auto px-4">
-
-        <!-- HERO with 3D depth & GSAP -->
-        <section class="relative rounded-3xl overflow-hidden mt-6 bg-gradient-to-br from-blue-50 to-indigo-100 shadow-xl" style="background-image: url('https://images.unsplash.com/photo-1607082350899-7e105aa9ae0c?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'); background-size: cover; background-blend-mode: overlay;">
-            <div class="bg-black/40 backdrop-brightness-90 p-16 md:p-24 text-center text-white">
-                <h1 id="hero-title" class="text-5xl md:text-6xl font-extrabold drop-shadow-2xl mb-4">Best Collection For You</h1>
-                <p class="text-xl md:text-2xl mb-8 opacity-90">minimal · smart · timeless</p>
-                <button class="bg-white text-gray-900 px-8 py-3 rounded-full font-semibold shadow-lg hover:scale-105 transition-transform"><i class="fas fa-bolt mr-2"></i>Shop Now</button>
-            </div>
-        </section>
-
-        <!-- Features / Why Choose Us (icon + text) -->
-        <section class="my-20">
-            <h2 class="text-3xl font-bold text-center mb-12">Why choose SwiftCart</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                <div class="bg-white p-6 rounded-2xl shadow-md text-center hover:shadow-xl transition"><i class="fas fa-truck-fast text-4xl text-blue-600 mb-3"></i><h3 class="text-xl font-semibold">Fast Delivery</h3><p class="text-gray-600">within 24h in 50+ cities</p></div>
-                <div class="bg-white p-6 rounded-2xl shadow-md text-center hover:shadow-xl transition"><i class="fas fa-headset text-4xl text-blue-600 mb-3"></i><h3 class="text-xl font-semibold">24/7 Support</h3><p class="text-gray-600">real humans, real fast</p></div>
-                <div class="bg-white p-6 rounded-2xl shadow-md text-center hover:shadow-xl transition"><i class="fas fa-lock text-4xl text-blue-600 mb-3"></i><h3 class="text-xl font-semibold">Secure Payment</h3><p class="text-gray-600">256-bit encrypted</p></div>
-                <div class="bg-white p-6 rounded-2xl shadow-md text-center hover:shadow-xl transition"><i class="fas fa-rotate-left text-4xl text-blue-600 mb-3"></i><h3 class="text-xl font-semibold">30-day returns</h3><p class="text-gray-600">no questions asked</p></div>
-            </div>
-        </section>
-
-        <!-- Trending / Top Rated (first 3 by rating) -->
-        <section class="my-16">
-            <h2 class="text-3xl font-bold text-center mb-10">🔥 trending now</h2>
-            <div id="trending-container" class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <!-- filled via js -->
-                <div class="col-span-full flex justify-center"><div class="spinner"></div></div>
-            </div>
-        </section>
-
-        <!-- Category filter & dynamic products -->
-        <section class="my-16">
-            <h2 class="text-3xl font-bold text-center mb-6">Shop by category</h2>
-            <!-- category buttons -->
-            <div id="category-list" class="flex flex-wrap justify-center gap-3 mb-10">
-                <button class="category-btn px-5 py-2 rounded-full border border-gray-300 bg-white hover:bg-blue-600 hover:text-white transition" data-category="all">All</button>
-                <!-- categories injected -->
-            </div>
-            <!-- loading spinner for products -->
-            <div id="products-loader" class="flex justify-center my-10 hidden"><div class="spinner"></div></div>
-            <!-- products grid -->
-            <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <!-- filled by js -->
-            </div>
-        </section>
-
-        <!-- Newsletter & footer combined -->
-        <footer class="bg-gray-900 text-white rounded-t-3xl mt-20">
-            <div class="container mx-auto px-4 py-12">
-                <div class="grid md:grid-cols-2 gap-10 items-center">
-                    <div>
-                        <h3 class="text-3xl font-light">Join the Swift letter</h3>
-                        <p class="text-gray-400 mt-2">get 10% off + early access</p>
-                    </div>
-                    <div class="flex flex-col sm:flex-row gap-3">
-                        <input type="email" placeholder="your.email@example.com" class="px-5 py-3 rounded-full bg-gray-800 text-white flex-grow border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <button class="bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-full font-semibold transition">Subscribe <i class="fas fa-paper-plane ml-2"></i></button>
-                    </div>
-                </div>
-                <hr class="border-gray-800 my-8">
-                <div class="flex flex-col md:flex-row justify-between items-center text-gray-400 text-sm">
-                    <div>© 2025 SwiftCart — minimal e‑commerce</div>
-                    <div class="flex space-x-6 mt-4 md:mt-0">
-                        <a href="#"><i class="fab fa-twitter hover:text-white text-xl"></i></a>
-                        <a href="#"><i class="fab fa-instagram hover:text-white text-xl"></i></a>
-                        <a href="#"><i class="fab fa-github hover:text-white text-xl"></i></a>
-                        <a href="#"><i class="fab fa-linkedin hover:text-white text-xl"></i></a>
-                    </div>
-                </div>
-            </div>
-        </footer>
-    </main>
-
-    <!-- MODAL for product details -->
-    <div id="modal" class="fixed inset-0 flex items-center justify-center z-[100] hidden modal-overlay transition-opacity">
-        <div class="bg-white rounded-2xl max-w-md w-full mx-4 p-6 shadow-2xl relative">
-            <button id="close-modal" class="absolute top-3 right-3 text-gray-500 hover:text-gray-800"><i class="fas fa-times text-2xl"></i></button>
-            <div id="modal-content" class="space-y-3">
-                <!-- dynamic content -->
-            </div>
-            <div class="mt-4 flex gap-3">
-                <button id="modal-add-to-cart" class="bg-blue-600 text-white px-4 py-2 rounded-lg w-full hover:bg-blue-700 transition"><i class="fas fa-cart-plus mr-2"></i>Add to Cart</button>
-            </div>
-        </div>
+  <!-- HERO section with Three.js background (abstract) -->
+  <section class="relative bg-gradient-to-r from-indigo-100 via-purple-50 to-pink-100 overflow-hidden">
+    <canvas id="three-canvas"></canvas>
+    <div class="relative max-w-7xl mx-auto px-4 py-24 sm:px-6 lg:px-8 text-center hero-content">
+      <h1 class="text-5xl md:text-6xl font-extrabold text-gray-900 mb-4 drop-shadow-sm">Best Collection For You</h1>
+      <p class="text-xl text-gray-700 max-w-2xl mx-auto mb-8">Discover the latest trends in fashion, electronics, and more. Shop with confidence and style at SwiftCart.</p>
+      <button class="bg-indigo-700 hover:bg-indigo-800 text-white text-lg px-10 py-4 rounded-full shadow-xl transition transform hover:scale-105"><i class="fa-solid fa-bolt mr-2"></i>Shop Now</button>
     </div>
+  </section>
 
-    <script>
-        (function() {
-            // ---------- global state & localStorage ----------
-            let cart = JSON.parse(localStorage.getItem('swiftcart')) || [];
-            let currentProduct = null; // for modal
+  <!-- FEATURES / Why Choose Us -->
+  <section class="py-16 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-4xl font-bold text-center text-gray-800 mb-12">Why Choose Us</h2>
+      <div class="grid md:grid-cols-4 gap-8">
+        <div class="text-center p-5 rounded-2xl hover:shadow-lg transition"><i class="fa-solid fa-truck-fast text-5xl text-indigo-600 mb-4"></i><h3 class="text-xl font-semibold">Fast Delivery</h3><p class="text-gray-600 mt-2">Get your orders delivered to your doorstep quickly and efficiently.</p></div>
+        <div class="text-center p-5 rounded-2xl hover:shadow-lg transition"><i class="fa-solid fa-headset text-5xl text-indigo-600 mb-4"></i><h3 class="text-xl font-semibold">24/7 Support</h3><p class="text-gray-600 mt-2">Our support team is available around the clock to assist you.</p></div>
+        <div class="text-center p-5 rounded-2xl hover:shadow-lg transition"><i class="fa-solid fa-lock text-5xl text-indigo-600 mb-4"></i><h3 class="text-xl font-semibold">Secure Payment</h3><p class="text-gray-600 mt-2">Experience safe and secure transactions with encrypted payment systems.</p></div>
+        <div class="text-center p-5 rounded-2xl hover:shadow-lg transition"><i class="fa-solid fa-rotate-left text-5xl text-indigo-600 mb-4"></i><h3 class="text-xl font-semibold">Easy Returns</h3><p class="text-gray-600 mt-2">Not satisfied? Return your products easily within 30 days.</p></div>
+      </div>
+    </div>
+  </section>
 
-            // update cart count everywhere
-            function updateCartCount() {
-                const countEl = document.getElementById('cart-count');
-                if (countEl) countEl.innerText = cart.reduce((acc, item) => acc + item.quantity, 0) || 0;
-                localStorage.setItem('swiftcart', JSON.stringify(cart));
-            }
-            updateCartCount();
+  <!-- CATEGORIES (dynamic from API) + TRENDING products section integrated -->
+  <section class="py-12 bg-gray-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+     
 
-            // ---------- helper: fetchJSON ----------
-            async function fetchJSON(url) {
-                const res = await fetch(url);
-                if (!res.ok) throw new Error('network');
-                return await res.json();
-            }
+      <!-- trending products grid (3 cols) + integrated category products (loads all first) -->
+      <h2 class="text-3xl font-bold text-gray-800 mb-8  ">Trending Now</h2>
+      <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+        <!-- cards injected via js, with skeleton loader shown first -->
+        <div class="col-span-full flex justify-center py-12"><div class="spinner-minimal"></div></div>
+      </div>
+    </div>
+  </section>
 
-            // ---------- trending (top 3 by rating) ----------
-            async function loadTrending() {
-                const trendingEl = document.getElementById('trending-container');
-                trendingEl.innerHTML = '<div class="col-span-full flex justify-center"><div class="spinner"></div></div>';
-                try {
-                    const products = await fetchJSON('https://fakestoreapi.com/products');
-                    const sorted = products.sort((a,b) => b.rating.rate - a.rating.rate).slice(0,3);
-                    trendingEl.innerHTML = sorted.map(p => `
-                        <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition group">
-                            <img src="${p.image}" alt="${p.title}" class="h-48 w-full object-contain p-4 bg-white">
-                            <div class="p-4 border-t">
-                                <h3 class="font-semibold truncate">${p.title}</h3>
-                                <div class="flex justify-between items-center mt-2">
-                                    <span class="text-blue-600 font-bold">$${p.price}</span>
-                                    <span class="text-sm text-gray-500"><i class="fas fa-star text-yellow-400"></i> ${p.rating.rate}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('');
-                } catch (e) {
-                    trendingEl.innerHTML = '<div class="col-span-full text-center text-red-500">failed to load</div>';
-                }
-            }
-
-            // ---------- load categories ----------
-            async function loadCategories() {
-                const catContainer = document.getElementById('category-list');
-                try {
-                    const cats = await fetchJSON('https://fakestoreapi.com/products/categories');
-                    cats.forEach(cat => {
-                        const btn = document.createElement('button');
-                        btn.className = 'category-btn px-5 py-2 rounded-full border border-gray-300 bg-white hover:bg-blue-600 hover:text-white transition';
-                        btn.dataset.category = cat;
-                        btn.innerText = cat;
-                        catContainer.appendChild(btn);
-                    });
-                    // set active "All"
-                    document.querySelectorAll('.category-btn').forEach(btn => {
-                        if (btn.dataset.category === 'all') btn.classList.add('category-active', 'bg-blue-600', 'text-white');
-                    });
-                } catch (e) { console.warn('categories failed'); }
-            }
-
-            // ---------- load products (category = string | 'all') ----------
-            async function loadProducts(category = 'all') {
-                const grid = document.getElementById('products-grid');
-                const loader = document.getElementById('products-loader');
-                loader.classList.remove('hidden');
-                grid.style.opacity = '0.5';
-                try {
-                    let products;
-                    if (category === 'all') {
-                        products = await fetchJSON('https://fakestoreapi.com/products');
-                    } else {
-                        products = await fetchJSON(`https://fakestoreapi.com/products/category/${encodeURIComponent(category)}`);
-                    }
-                    renderProducts(products);
-                    // active category highlight
-                    document.querySelectorAll('.category-btn').forEach(btn => {
-                        btn.classList.remove('category-active', 'bg-blue-600', 'text-white');
-                        if (btn.dataset.category === category) btn.classList.add('category-active', 'bg-blue-600', 'text-white');
-                        if (category === 'all' && btn.dataset.category === 'all') btn.classList.add('category-active', 'bg-blue-600', 'text-white');
-                    });
-                } catch (e) {
-                    grid.innerHTML = '<div class="col-span-full text-center py-10 text-red-500">⚠️ failed to load products</div>';
-                } finally {
-                    loader.classList.add('hidden');
-                    grid.style.opacity = '1';
-                }
-            }
-
-            // render product cards with details / add cart
-            function renderProducts(products) {
-                const grid = document.getElementById('products-grid');
-                grid.innerHTML = products.map(p => {
-                    const truncated = p.title.length > 30 ? p.title.slice(0,30)+'…' : p.title;
-                    return `
-                    <div class="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all p-4 flex flex-col product-card" data-id="${p.id}">
-                        <img src="${p.image}" alt="${p.title}" class="h-40 object-contain mb-3">
-                        <h3 class="font-semibold text-gray-800" title="${p.title}">${truncated}</h3>
-                        <div class="flex items-center mt-1 text-sm"><span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">${p.category}</span></div>
-                        <div class="flex justify-between items-center mt-3">
-                            <span class="text-xl font-bold text-blue-600">$${p.price}</span>
-                            <span class="text-yellow-500"><i class="fas fa-star"></i> ${p.rating.rate}</span>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 mt-4">
-                            <button class="details-btn bg-gray-100 hover:bg-gray-200 py-2 rounded-lg text-sm" data-product='${JSON.stringify(p).replace(/'/g, "&#39;")}'><i class="fas fa-eye mr-1"></i>Details</button>
-                            <button class="add-to-cart-btn bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm" data-product='${JSON.stringify(p).replace(/'/g, "&#39;")}'><i class="fas fa-cart-plus mr-1"></i>Add</button>
-                        </div>
-                    </div>
-                `}).join('');
-
-                // attach event listeners for dynamic buttons
-                document.querySelectorAll('.details-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const prod = JSON.parse(btn.dataset.product);
-                        openModal(prod);
-                    });
-                });
-                document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const prod = JSON.parse(btn.dataset.product);
-                        addToCart(prod);
-                    });
-                });
-            }
-
-            // modal
-            function openModal(product) {
-                currentProduct = product;
-                const modalContent = document.getElementById('modal-content');
-                modalContent.innerHTML = `
-                    <img src="${product.image}" class="h-48 mx-auto object-contain">
-                    <h2 class="text-2xl font-bold">${product.title}</h2>
-                    <p class="text-gray-600 text-sm">${product.description}</p>
-                    <div class="flex justify-between items-center"><span class="text-2xl font-bold text-blue-600">$${product.price}</span><span class="bg-yellow-100 px-3 py-1 rounded-full"><i class="fas fa-star text-yellow-500"></i> ${product.rating.rate} (${product.rating.count})</span></div>
-                    <span class="bg-gray-200 px-3 py-1 rounded-full text-sm">${product.category}</span>
-                `;
-                document.getElementById('modal').classList.remove('hidden');
-            }
-
-            // add to cart logic (store with quantity)
-            function addToCart(product) {
-                const existing = cart.find(item => item.id === product.id);
-                if (existing) {
-                    existing.quantity += 1;
-                } else {
-                    cart.push({ ...product, quantity: 1 });
-                }
-                updateCartCount();
-                // optional subtle animation
-                gsap.to("#cart-count", {scale:1.5, duration:0.2, yoyo:true, repeat:1});
-            }
-
-            // modal add to cart
-            document.getElementById('modal-add-to-cart').addEventListener('click', () => {
-                if (currentProduct) {
-                    addToCart(currentProduct);
-                    document.getElementById('modal').classList.add('hidden');
-                }
-            });
-            document.getElementById('close-modal').addEventListener('click', () => {
-                document.getElementById('modal').classList.add('hidden');
-            });
-
-            // category click handler
-            document.addEventListener('click', (e) => {
-                const catBtn = e.target.closest('.category-btn');
-                if (catBtn) {
-                    const category = catBtn.dataset.category;
-                    loadProducts(category);
-                }
-            });
-
-            // ---------- init homepage ----------
-            (async function init() {
-                await loadTrending();
-                await loadCategories();
-                loadProducts('all');  // initial all products
-            })();
-
-            // ---------- GSAP scroll & entrance animations ----------
-            gsap.registerPlugin(ScrollTrigger);
-            gsap.from("#hero-title", {duration:1.2, y:80, opacity:0, ease:"power3.out"});
-            gsap.from(".category-btn", {scrollTrigger:".category-btn", stagger:0.1, y:30, opacity:0, duration:0.6});
-            gsap.from(".product-card", {scrollTrigger:".product-grid", stagger:0.1, scale:0.9, opacity:0, duration:0.5});
-
-            // ---------- unique humber menu with GSAP ----------
-            const hamburger = document.getElementById('hamburger-icon');
-            const mobileMenu = document.getElementById('mobileMenu');
-            let menuOpen = false;
-            const menuLinks = mobileMenu.querySelectorAll('a');
-
-            hamburger.addEventListener('click', () => {
-                if (!menuOpen) {
-                    hamburger.classList.add('hamburger-open');
-                    gsap.to(mobileMenu, {right:0, duration:0.6, ease:"power4.out"});
-                    gsap.to(menuLinks, {x:0, opacity:1, stagger:0.1, delay:0.2, duration:0.4, ease:"back.out(1.2)"});
-                } else {
-                    hamburger.classList.remove('hamburger-open');
-                    gsap.to(menuLinks, {x:20, opacity:0, duration:0.2, onComplete: () => {
-                        gsap.to(mobileMenu, {right:-280, duration:0.5, ease:"power4.in"});
-                    }});
-                }
-                menuOpen = !menuOpen;
-            });
-
-            // close menu on link click (optional)
-            menuLinks.forEach(link => link.addEventListener('click', () => {
-                hamburger.classList.remove('hamburger-open');
-                gsap.to(menuLinks, {x:20, opacity:0, duration:0.2});
-                gsap.to(mobileMenu, {right:-280, duration:0.5, ease:"power4.in"});
-                menuOpen = false;
-            }));
-
-            // ---------- Three.js background minimal (floating torus) ----------
-            const canvas = document.getElementById('three-canvas');
-            const scene = new THREE.Scene();
-            const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-            const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-
-            const geometry = new THREE.TorusKnotGeometry(1, 0.3, 100, 16);
-            const material = new THREE.MeshBasicMaterial({ color: 0x3b82f6, wireframe: true, transparent: true, opacity: 0.15 });
-            const torusKnot = new THREE.Mesh(geometry, material);
-            scene.add(torusKnot);
-            camera.position.z = 5;
-
-            function animate() {
-                requestAnimationFrame(animate);
-                torusKnot.rotation.x += 0.003;
-                torusKnot.rotation.y += 0.005;
-                renderer.render(scene, camera);
-            }
-            animate();
-
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth/window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            });
-        })();
-    </script>
-
-    <!-- hint: cart page is separate (cart.html) – must be created with similar localStorage logic -->
-    <!-- we provide a minimal cart page code below (place in cart.html) -->
-    <!--
-        ========== CART PAGE (cart.html) ==========
-        <!DOCTYPE html> ... (similarly head) 
-        <body class="bg-gray-50"> 
-        <nav>.. (same nav with cart count)</nav>
-        <div class="container mx-auto p-6">
-            <h1 class="text-3xl font-bold mb-6">Your Cart</h1>
-            <div id="cart-items"></div>
-            <div id="cart-total" class="text-2xl font-bold mt-6"></div>
-            <button id="clear-cart" class="bg-red-500 text-white px-4 py-2 rounded">clear</button>
+  <!-- NEWSLETTER + FOOTER combined -->
+  <footer class="bg-gray-900 text-gray-300 pt-12 pb-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- subscription row -->
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-gray-700 pb-10 mb-8">
+        <div class="mb-6 md:mb-0">
+          <h3 class="text-2xl font-bold text-white">Subscribe to our newsletter</h3>
+          <p class="text-gray-400">The latest news, articles, and resources, sent weekly.</p>
         </div>
-        <script>
-            let cart = JSON.parse(localStorage.getItem('swiftcart')) || [];
-            function renderCart() { 
-                let html = ''; let total=0;
-                cart.forEach((item,i) => { total+=item.price*item.quantity;
-                html+='<div class=\"flex justify-between items-center border-b py-2\">'+item.title+' x'+item.quantity+' $'+(item.price*item.quantity)+' <button class=\"remove-btn text-red-500\" data-index=\"'+i+'\"><i class=\"fas fa-trash\"></i></button></div>' });
-                document.getElementById('cart-items').innerHTML=html || '<p>empty</p>';
-                document.getElementById('cart-total').innerText='Total: $'+total.toFixed(2);
-                localStorage.setItem('swiftcart',JSON.stringify(cart));
-            }
-            renderCart();
-            document.addEventListener('click',(e)=>{ if(e.target.closest('.remove-btn')){ let idx=e.target.closest('.remove-btn').dataset.index; cart.splice(idx,1); renderCart(); window.parent.updateCartCount?.(); } });
-            document.getElementById('clear-cart')?.addEventListener('click',()=>{ cart=[]; renderCart(); });
-        </script>
-    -->
+        <div class="flex w-full md:w-auto">
+          <input type="email" placeholder="Enter your email" class="px-5 py-3 w-full md:w-72 rounded-l-lg bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <button class="bg-indigo-700 hover:bg-indigo-800 px-6 py-3 rounded-r-lg font-semibold text-white transition"><i class="fa-regular fa-paper-plane mr-2"></i>Subscribe</button>
+        </div>
+      </div>
+
+      <!-- footer links grid -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div><i class="fa-brands fa-shopify text-3xl text-indigo-400 mb-3"></i><p class="text-sm text-gray-400">Your one-stop shop for all your fashion and lifestyle needs. Quality products, fast delivery, and excellent support.</p></div>
+        <div><h4 class="text-white font-semibold mb-3">QUICK LINKS</h4><ul class="space-y-2 text-sm"><li><a href="#" class="hover:text-indigo-300">Home</a></li><li><a href="#" class="hover:text-indigo-300">Products</a></li><li><a href="#" class="hover:text-indigo-300">About</a></li><li><a href="#" class="hover:text-indigo-300">Contact</a></li></ul></div>
+        <div><h4 class="text-white font-semibold mb-3">SUPPORT</h4><ul class="space-y-2 text-sm"><li><a href="#" class="hover:text-indigo-300">FAQ</a></li><li><a href="#" class="hover:text-indigo-300">Shipping</a></li><li><a href="#" class="hover:text-indigo-300">Returns</a></li><li><a href="#" class="hover:text-indigo-300">Privacy Policy</a></li></ul></div>
+        <div><h4 class="text-white font-semibold mb-3">FOLLOW US</h4><div class="flex space-x-4"><i class="fa-brands fa-facebook-f text-2xl hover:text-indigo-400 cursor-pointer"></i><i class="fa-brands fa-x-twitter text-2xl hover:text-indigo-400 cursor-pointer"></i><i class="fa-brands fa-instagram text-2xl hover:text-indigo-400 cursor-pointer"></i><i class="fa-brands fa-youtube text-2xl hover:text-indigo-400 cursor-pointer"></i></div></div>
+      </div>
+
+      <div class="text-center text-sm text-gray-500 border-t border-gray-800 pt-6">© 2025 SwiftCart, Inc. All rights reserved.</div>
+    </div>
+  </footer>
+
+  <!-- MODAL for product details (hidden by default) -->
+  <div id="productModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 hidden transition-opacity">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+      <div class="p-6 relative">
+        <button id="closeModal" class="absolute top-4 right-4 text-3xl text-gray-600 hover:text-black"><i class="fa-regular fa-circle-xmark"></i></button>
+        <div id="modalContent" class="mt-4"><!-- dynamic --></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CART PAGE separate is out of scope (just a placeholder link), but we manage localStorage -->
+  <script>
+    (function() {
+      // ---------- GLOBAL STATE & LOCALSTORAGE CART ----------
+      let cart = JSON.parse(localStorage.getItem('swiftcart_cart')) || [];
+      function updateCartUI() {
+        const count = cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
+        document.getElementById('cartCountBadge').innerText = count;
+        localStorage.setItem('swiftcart_cart', JSON.stringify(cart));
+      }
+      window.updateCartUI = updateCartUI; // accessible globally
+      
+      // add to cart function
+      window.addToCart = function(product) {
+        const existing = cart.find(p => p.id === product.id);
+        if (existing) existing.quantity = (existing.quantity || 1) + 1;
+        else cart.push({ ...product, quantity: 1 });
+        updateCartUI();
+        gsap.to("#cartIcon", {scale:1.3, duration:0.2, yoyo:true, repeat:1});
+      };
+
+      // ---------- HAMBURGER UNIQUE ----------
+      const menuBtn = document.getElementById('mobileMenuBtn');
+      const mobileMenu = document.getElementById('mobileMenu');
+      menuBtn.addEventListener('click', () => {
+        menuBtn.classList.toggle('open');
+        mobileMenu.classList.toggle('hidden');
+      });
+
+      // ---------- THREE.JS HERO BACKGROUND (abstract) ----------
+      const canvas = document.getElementById('three-canvas');
+      if (canvas) {
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.position.z = 5;
+        const geometry = new THREE.IcosahedronGeometry(1.5, 1);
+        const material = new THREE.MeshBasicMaterial({ color: 0x4f46e5, wireframe: true, transparent: true, opacity: 0.25 });
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+        function animate() { requestAnimationFrame(animate); mesh.rotation.x += 0.003; mesh.rotation.y += 0.005; renderer.render(scene, camera); }
+        animate();
+        window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+      }
+
+     
+
+      // fetch all products initially
+      fetch('https://fakestoreapi.com/products')
+        .then(res => res.json())
+        .then(products => {
+          allProducts = products;
+          renderProducts(products);
+        })
+        .catch(e => productGrid.innerHTML = '<div class="col-span-full text-center text-red-500">Error loading products</div>');
+
+      function renderProducts(productsArray) {
+        if (!productsArray.length) { productGrid.innerHTML = '<div class="col-span-full text-center text-gray-500">No products</div>'; return; }
+        let html = '';
+        productsArray.slice(0,3).forEach(p => { // show first 8 as "trending"
+          html += `<div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition group">
+            <img src="${p.image}" alt="${p.title}" class="card-img w-full p-4 bg-white">
+            <div class="p-4">
+              <span class="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full">${p.category}</span>
+              <h3 class="font-semibold mt-2 truncate">${p.title}</h3>
+              <div class="flex justify-between items-center mt-2">
+                <span class="text-xl font-bold text-indigo-700">$${p.price}</span>
+                <span class="text-sm text-gray-600"><i class="fa-regular fa-star text-amber-400"></i> ${p.rating.rate} (${p.rating.count})</span>
+              </div>
+              <div class="flex gap-2 mt-4">
+                <button data-id="${p.id}" class="detailsBtn flex-1 border border-indigo-600 text-indigo-700 px-2 py-1.5 rounded-lg text-sm hover:bg-indigo-50"><i class="fa-regular fa-eye mr-1"></i>Details</button>
+                <button data-product='${JSON.stringify(p).replace(/'/g, "&apos;")}' class="addToCartBtn flex-1 bg-indigo-600 text-white px-2 py-1.5 rounded-lg text-sm hover:bg-indigo-700"><i class="fa-solid fa-cart-plus mr-1"></i>Add</button>
+              </div>
+            </div>
+          </div>`;
+        });
+        productGrid.innerHTML = html;
+
+        // attach details modal event
+        document.querySelectorAll('.detailsBtn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const id = e.currentTarget.dataset.id;
+            const product = allProducts.find(p => p.id == id);
+            if (product) showModal(product);
+          });
+        });
+        // attach add to cart
+        document.querySelectorAll('.addToCartBtn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const prodStr = e.currentTarget.dataset.product;
+            const product = JSON.parse(prodStr.replace(/&apos;/g, "'"));
+            addToCart(product);
+          });
+        });
+      }
+
+      function filterProducts(category, btnElement) {
+        // update active class
+        document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('category-active'));
+        btnElement.classList.add('category-active');
+        activeCategory = category;
+        if (!category || category === 'all') {
+          renderProducts(allProducts);
+        } else {
+          fetch(`https://fakestoreapi.com/products/category/${category}`)
+            .then(res => res.json())
+            .then(filtered => renderProducts(filtered))
+            .catch(() => productGrid.innerHTML = '<div class="col-span-full text-center text-red-500">error</div>');
+        }
+      }
+
+      // modal logic
+      const modal = document.getElementById('productModal');
+      const modalContent = document.getElementById('modalContent');
+      const closeModal = document.getElementById('closeModal');
+      window.showModal = function(product) {
+        modalContent.innerHTML = `
+          <div class="flex flex-col md:flex-row gap-6">
+            <img src="${product.image}" class="w-full md:w-1/2 object-contain max-h-64" alt="${product.title}">
+            <div>
+              <h3 class="text-2xl font-bold">${product.title}</h3>
+              <p class="text-gray-600 mt-2">${product.description}</p>
+              <div class="flex items-center mt-4"><span class="text-3xl font-bold text-indigo-700">$${product.price}</span><span class="ml-4 text-gray-600"><i class="fa-regular fa-star text-amber-400"></i> ${product.rating.rate} /5 (${product.rating.count})</span></div>
+              <button id="modalAddToCart" class="mt-6 bg-indigo-700 hover:bg-indigo-800 text-white px-6 py-3 rounded-xl w-full text-lg"><i class="fa-solid fa-cart-shopping mr-2"></i>Add to Cart</button>
+            </div>
+          </div>
+        `;
+        modal.classList.remove('hidden');
+        document.getElementById('modalAddToCart').addEventListener('click', () => { addToCart(product); modal.classList.add('hidden'); });
+      };
+      closeModal.addEventListener('click', () => modal.classList.add('hidden'));
+      window.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
+
+      // GSAP entrance animation
+      gsap.from('.hero-content', { opacity: 0, y: 40, duration: 1.2, ease: 'power3.out' });
+      gsap.from('.feature-card', { opacity: 0, y: 30, stagger: 0.2, duration: 0.8, scrollTrigger: { trigger: '.features-grid', start: 'top 80%' } }); // (simplified)
+
+      // update cart count on load
+      updateCartUI();
+    })();
+  </script>
+  <!-- ensure cart persistence -->
+  <script>
+    // re-run cart update on any future storage change
+    window.addEventListener('storage', (e) => { if (e.key === 'swiftcart_cart') { cart = JSON.parse(e.newValue) || []; updateCartUI(); } });
+  </script>
 </body>
 </html>

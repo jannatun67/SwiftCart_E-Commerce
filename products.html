@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SwiftCart · Products</title>
+  <!-- Tailwind via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome 6 (no SVG icons) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- GSAP for subtle animations -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <style>
+    /* custom loader, category active, card image */
+    .spinner { border: 4px solid rgba(99, 102, 241, 0.2); border-top: 4px solid #4f46e5; border-radius: 50%; width: 3rem; height: 3rem; animation: spin 0.8s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .category-active { background: #4f46e5; color: white; border-color: #4f46e5; }
+    .product-card-img { height: 200px; object-fit: contain; background: #f3f4f6; mix-blend-mode: multiply; padding: 1rem; }
+    /* cart sidebar */
+    .cart-sidebar { transition: transform 0.3s ease-in-out; transform: translateX(100%); }
+    .cart-sidebar.open { transform: translateX(0); }
+    /* mobile menu unique style */
+    .hamburger-line { transition: all 0.3s; }
+    .open .hamburger-line:nth-child(1) { transform: rotate(45deg) translate(8px, 6px); }
+    .open .hamburger-line:nth-child(2) { opacity: 0; }
+    .open .hamburger-line:nth-child(3) { transform: rotate(-45deg) translate(8px, -6px); }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+
+  <!-- NAVBAR (same as home page for consistency) -->
+  <nav class="bg-white shadow-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <!-- logo -->
+        <a href="/index.html" class="flex items-center space-x-2">
+          <i class="fa-brands fa-shopify text-3xl text-indigo-700"></i>
+          <span class="text-2xl font-bold tracking-tight text-gray-800">SwiftCart</span>
+        </a>
+        <!-- desktop menu -->
+        <div class="hidden md:flex space-x-8 text-gray-700 font-medium">
+          <a href="/index.html" class="hover:text-indigo-600 transition">Home</a>
+          <a href="#" class="border-b-2 border-indigo-600 pb-1 text-indigo-600">Products</a>
+          <a href="#" class="hover:text-indigo-600 transition">About</a>
+          <a href="#" class="hover:text-indigo-600 transition">Contact</a>
+        </div>
+        <!-- right: cart + mobile button -->
+        <div class="flex items-center space-x-5">
+          <!-- cart icon with count and click to open sidebar -->
+          <div class="relative cursor-pointer" id="cartIcon" onclick="toggleCartSidebar()">
+            <i class="fa-solid fa-bag-shopping text-2xl text-gray-700"></i>
+            <span id="cartCountBadge" class="absolute -top-2 -right-2 bg-rose-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">0</span>
+          </div>
+          <!-- unique hamburger (mobile) -->
+          <button id="mobileMenuBtn" class="md:hidden flex flex-col space-y-1.5 p-2 rounded-lg hover:bg-gray-100 transition">
+            <span class="hamburger-line w-7 h-0.5 bg-gray-700"></span>
+            <span class="hamburger-line w-7 h-0.5 bg-gray-700"></span>
+            <span class="hamburger-line w-7 h-0.5 bg-gray-700"></span>
+          </button>
+        </div>
+      </div>
+      <!-- mobile dropdown -->
+      <div id="mobileMenu" class="hidden md:hidden bg-white border-t pb-3 pt-2 px-2 space-y-1">
+        <a href="/index.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Home</a>
+        <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-indigo-700 bg-indigo-50">Products</a>
+        <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">About</a>
+        <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100">Contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- PAGE HEADER -->
+  <section class="bg-gradient-to-r from-indigo-100 to-purple-100 py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 mb-2">Our Products</h1>
+      <p class="text-lg text-gray-700 max-w-2xl mx-auto">Browse through our curated collection. Find the best fashion, electronics, jewelry and more.</p>
+    </div>
+  </section>
+
+  <!-- MAIN CONTENT: categories + products grid -->
+  <section class="py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- filter by category row -->
+      <div class="flex flex-wrap items-center justify-between mb-8 gap-4">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-gray-700 font-medium mr-1"><i class="fa-regular fa-filter"></i> Category:</span>
+          <div id="categoryList" class="flex flex-wrap gap-2">
+            <!-- filled by js with loader -->
+            <div class="spinner"></div>
+          </div>
+        </div>
+        <!-- simple product count (dynamic) -->
+        <div id="productCount" class="text-sm text-gray-600 bg-white px-4 py-2 rounded-full shadow-sm"></div>
+      </div>
+
+      <!-- product grid (4 columns on large) -->
+      <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div class="col-span-full flex justify-center py-16"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CART SIDEBAR (extra cart page – but we follow "extra cart page" as a sidebar that functions like a separate cart page) -->
+  <div id="cartSidebar" class="cart-sidebar fixed top-0 right-0 w-full sm:w-96 h-full bg-white shadow-2xl z-50 flex flex-col">
+    <div class="flex justify-between items-center p-5 border-b">
+      <h2 class="text-2xl font-bold text-gray-800"><i class="fa-solid fa-cart-shopping mr-2 text-indigo-600"></i>Your Cart</h2>
+      <button onclick="toggleCartSidebar()" class="text-3xl text-gray-500 hover:text-black"><i class="fa-regular fa-circle-xmark"></i></button>
+    </div>
+    <!-- cart items container -->
+    <div id="cartItemsContainer" class="flex-1 overflow-y-auto p-4 space-y-4">
+      <!-- dynamically populated -->
+    </div>
+    <!-- cart footer with total and clear -->
+    <div class="border-t p-4 bg-gray-50">
+      <div class="flex justify-between text-xl font-bold mb-3">
+        <span>Total:</span>
+        <span id="cartTotal">$0.00</span>
+      </div>
+      <button onclick="clearCart()" class="w-full bg-rose-600 hover:bg-rose-700 text-white py-3 rounded-lg font-semibold transition"><i class="fa-regular fa-trash-can mr-2"></i>Clear Cart</button>
+      <p class="text-xs text-gray-500 mt-2 text-center">Items saved in browser</p>
+    </div>
+  </div>
+
+ <!-- NEWSLETTER + FOOTER combined -->
+  <footer class="bg-gray-900 text-gray-300 pt-12 pb-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- subscription row -->
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-gray-700 pb-10 mb-8">
+        <div class="mb-6 md:mb-0">
+          <h3 class="text-2xl font-bold text-white">Subscribe to our newsletter</h3>
+          <p class="text-gray-400">The latest news, articles, and resources, sent weekly.</p>
+        </div>
+        <div class="flex w-full md:w-auto">
+          <input type="email" placeholder="Enter your email" class="px-5 py-3 w-full md:w-72 rounded-l-lg bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <button class="bg-indigo-700 hover:bg-indigo-800 px-6 py-3 rounded-r-lg font-semibold text-white transition"><i class="fa-regular fa-paper-plane mr-2"></i>Subscribe</button>
+        </div>
+      </div>
+
+      <!-- footer links grid -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div><i class="fa-brands fa-shopify text-3xl text-indigo-400 mb-3"></i><p class="text-sm text-gray-400">Your one-stop shop for all your fashion and lifestyle needs. Quality products, fast delivery, and excellent support.</p></div>
+        <div><h4 class="text-white font-semibold mb-3">QUICK LINKS</h4><ul class="space-y-2 text-sm"><li><a href="#" class="hover:text-indigo-300">Home</a></li><li><a href="#" class="hover:text-indigo-300">Products</a></li><li><a href="#" class="hover:text-indigo-300">About</a></li><li><a href="#" class="hover:text-indigo-300">Contact</a></li></ul></div>
+        <div><h4 class="text-white font-semibold mb-3">SUPPORT</h4><ul class="space-y-2 text-sm"><li><a href="#" class="hover:text-indigo-300">FAQ</a></li><li><a href="#" class="hover:text-indigo-300">Shipping</a></li><li><a href="#" class="hover:text-indigo-300">Returns</a></li><li><a href="#" class="hover:text-indigo-300">Privacy Policy</a></li></ul></div>
+        <div><h4 class="text-white font-semibold mb-3">FOLLOW US</h4><div class="flex space-x-4"><i class="fa-brands fa-facebook-f text-2xl hover:text-indigo-400 cursor-pointer"></i><i class="fa-brands fa-x-twitter text-2xl hover:text-indigo-400 cursor-pointer"></i><i class="fa-brands fa-instagram text-2xl hover:text-indigo-400 cursor-pointer"></i><i class="fa-brands fa-youtube text-2xl hover:text-indigo-400 cursor-pointer"></i></div></div>
+      </div>
+
+      <div class="text-center text-sm text-gray-500 border-t border-gray-800 pt-6">© 2025 SwiftCart, Inc. All rights reserved.</div>
+    </div>
+  </footer>
+
+  <!-- overlay when cart open -->
+  <div id="overlay" class="fixed inset-0 bg-black bg-opacity-40 z-40 hidden" onclick="toggleCartSidebar()"></div>
+
+  <!-- MODAL for product details (exactly as home) -->
+  <div id="productModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+      <div class="p-6 relative">
+        <button id="closeModal" class="absolute top-4 right-4 text-3xl text-gray-600 hover:text-black"><i class="fa-regular fa-circle-xmark"></i></button>
+        <div id="modalContent" class="mt-4"></div>
+      </div>
+    </div>
+  </div>
+
+  
+
+  <script src="/script/index.js"></script>
+</body>
+</html>
