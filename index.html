@@ -74,14 +74,26 @@
   </nav>
 
   <!-- HERO section with Three.js background (abstract) -->
-  <section class="relative bg-gradient-to-r from-indigo-100 via-purple-50 to-pink-100 overflow-hidden">
-    <canvas id="three-canvas"></canvas>
-    <div class="relative max-w-7xl mx-auto px-4 py-24 sm:px-6 lg:px-8 text-center hero-content">
-      <h1 class="text-5xl md:text-6xl font-extrabold text-gray-900 mb-4 drop-shadow-sm">Best Collection For You</h1>
-      <p class="text-xl text-gray-700 max-w-2xl mx-auto mb-8">Discover the latest trends in fashion, electronics, and more. Shop with confidence and style at SwiftCart.</p>
-      <button class="bg-indigo-700 hover:bg-indigo-800 text-white text-lg px-10 py-4 rounded-full shadow-xl transition transform hover:scale-105"><i class="fa-solid fa-bolt mr-2"></i>Shop Now</button>
-    </div>
-  </section>
+  <section class="relative overflow-hidden bg-cover bg-center"
+  style="background-image: linear-gradient(to right, rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('/Assets/banner-image.png');">
+
+  <canvas id="three-canvas" class="absolute inset-0"></canvas>
+
+  <div class="relative max-w-7xl mx-auto px-4 py-24 sm:px-6 lg:px-8 text-center hero-content z-10">
+    <h1 class="text-5xl md:text-6xl font-extrabold text-white mb-4 drop-shadow-lg">
+      Best Collection For You
+    </h1>
+
+    <p class="text-xl text-gray-200 max-w-2xl mx-auto mb-8">
+      Discover the latest trends in fashion, electronics, and more. Shop with confidence and style at SwiftCart.
+    </p>
+
+    <button class="bg-white hover:bg-gray-200 text-indigo-700 text-lg px-10 py-4 rounded-full shadow-xl transition transform hover:scale-105">
+      <i class="fa-solid fa-bolt mr-2"></i>Shop Now
+    </button>
+  </div>
+</section>
+
 
   <!-- FEATURES / Why Choose Us -->
   <section class="py-16 bg-white">
