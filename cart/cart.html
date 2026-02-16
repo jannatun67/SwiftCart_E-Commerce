@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SwiftCart · your cart</title>
+  <!-- Tailwind + Font Awesome (no SVG) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- GSAP for micro interactions -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <style>
+    /* consistent with home page */
+    .card-img-cart { height: 100px; width: 100px; object-fit: contain; background: #f9f9f9; mix-blend-mode: multiply; }
+    .spinner-minimal { border: 3px solid rgba(100,100,100,0.1); border-top: 3px solid #4f46e5; border-radius: 50%; width: 2.5rem; height: 2.5rem; animation: spin 0.8s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .hamburger-line { transition: all 0.3s ease; }
+    .open .hamburger-line:nth-child(1) { transform: rotate(45deg) translate(8px, 6px); }
+    .open .hamburger-line:nth-child(2) { opacity: 0; }
+    .open .hamburger-line:nth-child(3) { transform: rotate(-45deg) translate(8px, -6px); }
+    .cart-item-row { transition: background 0.2s; }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans antialiased flex flex-col min-h-screen">
+
+  <!-- NAVBAR (same structure as home, but links adapted) -->
+  <nav class="bg-white shadow-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <!-- left logo -->
+        <a href="index.html" class="flex items-center space-x-2">
+          <i class="fa-brands fa-shopify text-3xl text-indigo-700"></i>
+          <span class="text-2xl font-bold tracking-tight text-gray-800">SwiftCart</span>
+        </a>
+
+        <!-- desktop menu -->
+        <div class="hidden md:flex space-x-8 text-gray-700 font-medium">
+          <a href="/index.html" class="hover:text-indigo-600 transition">Home</a>
+          <a href="/products.html" class="hover:text-indigo-600 transition">Products</a>
+          <a href="#" class="hover:text-indigo-600 transition">About</a>
+          <a href="#" class="hover:text-indigo-600 transition">Contact</a>
+        </div>
+
+        <!-- right: cart icon with count & hamburger -->
+        <div class="flex items-center space-x-5">
+          <div class="relative cursor-pointer" id="cartIcon" onclick="window.location.href='cart.html'">
+            <i class="fa-solid fa-bag-shopping text-2xl text-gray-700"></i>
+            <span id="cartCountBadge" class="absolute -top-2 -right-2 bg-rose-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">0</span>
+          </div>
+          <!-- unique hamburger (mobile) -->
+          <button id="mobileMenuBtn" class="md:hidden flex flex-col space-y-1.5 p-2 rounded-lg hover:bg-gray-100 transition">
+            <span class="hamburger-line w-7 h-0.5 bg-gray-700"></span>
+            <span class="hamburger-line w-7 h-0.5 bg-gray-700"></span>
+            <span class="hamburger-line w-7 h-0.5 bg-gray-700"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- mobile dropdown -->
+      <div id="mobileMenu" class="hidden md:hidden bg-white border-t pb-3 pt-2 px-2 space-y-1">
+        <a href="/index.html" class="block px-3 py-2 rounded-md text-base text-gray-700 hover:bg-gray-100">Home</a>
+        <a href="/products.html" class="block px-3 py-2 rounded-md text-base text-gray-700 hover:bg-gray-100">Products</a>
+        <a href="#" class="block px-3 py-2 rounded-md text-base text-gray-700 hover:bg-gray-100">About</a>
+        <a href="#" class="block px-3 py-2 rounded-md text-base text-gray-700 hover:bg-gray-100">Contact</a>
+      </div>
+    </div> 
+  </nav>
+
+  <!-- MAIN CART SECTION -->
+  <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+    <!-- header with icon -->
+    <div class="flex items-center space-x-3 mb-8">
+      <i class="fa-solid fa-cart-shopping text-4xl text-indigo-700"></i>
+      <h1 class="text-4xl font-bold text-gray-800">Your Shopping Cart</h1>
+    </div>
+
+    <!-- loading spinner (hidden by default) + cart container -->
+    <div id="cartLoading" class="flex justify-center py-16 hidden"><div class="spinner-minimal"></div></div>
+
+    <div id="cartContent" class="grid lg:grid-cols-3 gap-8">
+      <!-- LEFT: CART ITEMS (col-span-2) -->
+      <div class="lg:col-span-2">
+        <div id="cartItemsContainer" class="bg-white rounded-2xl shadow-md p-5 md:p-6 space-y-4">
+          <!-- filled dynamically / fallback empty state -->
+          <div class="text-center py-16 text-gray-400" id="emptyCartMessage">
+            <i class="fa-solid fa-box-open text-6xl mb-4"></i>
+            <p class="text-xl">Your cart is empty</p>
+            <a href="/products.html" class="inline-block mt-6 bg-indigo-600 text-white px-6 py-3 rounded-full hover:bg-indigo-700 transition"><i class="fa-solid fa-arrow-left mr-2"></i>Continue shopping</a>
+          </div>
+          <!-- cart items will be injected here (hide empty message when items exist) -->
+        </div>
+      </div>
+
+      <!-- RIGHT: SUMMARY CARD -->
+      <div class="lg:col-span-1">
+        <div class="bg-white rounded-2xl shadow-md p-6 sticky top-24">
+          <h2 class="text-2xl font-bold text-gray-800 mb-4">Summary</h2>
+          <div id="summaryDetails" class="space-y-3 text-gray-700">
+            <div class="flex justify-between"><span>Subtotal</span> <span id="subtotalAmount">$0.00</span></div>
+            <div class="flex justify-between"><span>Shipping</span> <span id="shippingEstimate">$5.99</span></div>
+            <div class="border-t pt-3 mt-3 flex justify-between font-bold text-lg"><span>Total</span> <span id="totalAmount">$5.99</span></div>
+          </div>
+          <button id="checkoutBtn" class="w-full mt-6 bg-indigo-700 hover:bg-indigo-800 text-white font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2"><i class="fa-regular fa-credit-card"></i>Proceed to checkout</button>
+          <p class="text-xs text-gray-400 mt-4 text-center"><i class="fa-regular fa-lock mr-1"></i>Secure transaction</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- continue shopping link (mobile friendly) -->
+    <div class="mt-8 text-center lg:text-left">
+      <a href="/index.html" class="text-indigo-700 hover:underline inline-flex items-center gap-1"><i class="fa-solid fa-arrow-left"></i> Continue shopping</a>
+    </div>
+  </main>
+
+  <!-- FOOTER (simplified, consistent with home) -->
+   <footer class="bg-gray-900 text-gray-300 pt-12 pb-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- subscription row -->
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-gray-700 pb-10 mb-8">
+        <div class="mb-6 md:mb-0">
+          <h3 class="text-2xl font-bold text-white">Subscribe to our newsletter</h3>
+          <p class="text-gray-400">The latest news, articles, and resources, sent weekly.</p>
+        </div>
+        <div class="flex w-full md:w-auto">
+          <input type="email" placeholder="Enter your email" class="px-5 py-3 w-full md:w-72 rounded-l-lg bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <button class="bg-indigo-700 hover:bg-indigo-800 px-6 py-3 rounded-r-lg font-semibold text-white transition"><i class="fa-regular fa-paper-plane mr-2"></i>Subscribe</button>
+        </div>
+      </div>
+
+      <!-- footer links grid -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div><i class="fa-brands fa-shopify text-3xl text-indigo-400 mb-3"></i><p class="text-sm text-gray-400">Your one-stop shop for all your fashion and lifestyle needs. Quality products, fast delivery, and excellent support.</p></div>
+        <div><h4 class="text-white font-semibold mb-3">QUICK LINKS</h4><ul class="space-y-2 text-sm"><li><a href="#" class="hover:text-indigo-300">Home</a></li><li><a href="#" class="hover:text-indigo-300">Products</a></li><li><a href="#" class="hover:text-indigo-300">About</a></li><li><a href="#" class="hover:text-indigo-300">Contact</a></li></ul></div>
+        <div><h4 class="text-white font-semibold mb-3">SUPPORT</h4><ul class="space-y-2 text-sm"><li><a href="#" class="hover:text-indigo-300">FAQ</a></li><li><a href="#" class="hover:text-indigo-300">Shipping</a></li><li><a href="#" class="hover:text-indigo-300">Returns</a></li><li><a href="#" class="hover:text-indigo-300">Privacy Policy</a></li></ul></div>
+        <div><h4 class="text-white font-semibold mb-3">FOLLOW US</h4><div class="flex space-x-4"><i class="fa-brands fa-facebook-f text-2xl hover:text-indigo-400 cursor-pointer"></i><i class="fa-brands fa-x-twitter text-2xl hover:text-indigo-400 cursor-pointer"></i><i class="fa-brands fa-instagram text-2xl hover:text-indigo-400 cursor-pointer"></i><i class="fa-brands fa-youtube text-2xl hover:text-indigo-400 cursor-pointer"></i></div></div>
+      </div>
+
+      <div class="text-center text-sm text-gray-500 border-t border-gray-800 pt-6">© 2025 SwiftCart, Inc. All rights reserved.</div>
+    </div>
+  </footer>
+
+  <script>
+    (function() {
+      // ---------- CART STATE (sync with localStorage) ----------
+      let cart = [];
+
+      // load from localStorage
+      function loadCart() {
+        try {
+          cart = JSON.parse(localStorage.getItem('swiftcart_cart')) || [];
+        } catch (e) {
+          cart = [];
+        }
+        // ensure each item has quantity
+        cart = cart.map(item => ({ ...item, quantity: item.quantity || 1 }));
+      }
+
+      // update localStorage & refresh all UI (cart items, counts, summary)
+      function saveAndRefresh() {
+        localStorage.setItem('swiftcart_cart', JSON.stringify(cart));
+        updateCartCount();
+        renderCartItems();
+        updateSummary();
+      }
+
+      // update navbar badge
+      function updateCartCount() {
+        const badge = document.getElementById('cartCountBadge');
+        if (badge) {
+          const totalItems = cart.reduce((acc, i) => acc + (i.quantity || 1), 0);
+          badge.innerText = totalItems;
+        }
+      }
+
+      // render cart items inside container, handle empty/loading states
+      const container = document.getElementById('cartItemsContainer');
+      const emptyMsg = document.getElementById('emptyCartMessage');
+      const loading = document.getElementById('cartLoading');
+      
+      function renderCartItems() {
+        if (!container) return;
+        
+        // hide empty message initially, we'll show it if needed
+        if (!cart.length) {
+          container.innerHTML = ''; // clear any previous items
+          container.appendChild(emptyMsg); // move empty message into container
+          emptyMsg.classList.remove('hidden');
+          // ensure summary updates to zero
+          updateSummary();
+          return;
+        }
+        
+        // has items: hide empty message, build rows
+        if (emptyMsg.parentNode === container) {
+          container.innerHTML = ''; // remove empty msg
+        } else {
+          emptyMsg.classList.add('hidden'); // fallback
+          container.innerHTML = ''; // clear skeleton if any
+        }
+
+        // build each cart row with image, title, price, quantity controls, remove btn
+        cart.forEach((item, index) => {
+          const itemDiv = document.createElement('div');
+          itemDiv.className = 'cart-item-row flex flex-col sm:flex-row items-start sm:items-center gap-4 p-3 border-b border-gray-200 last:border-0';
+          itemDiv.dataset.id = item.id;
+          
+          const itemPrice = item.price || 0;
+          const itemQuantity = item.quantity || 1;
+          const imageUrl = item.image || 'https://fakestoreapi.com/img/placeholder.png';
+          
+          itemDiv.innerHTML = `
+            <div class="flex-shrink-0 bg-gray-50 rounded-lg p-2">
+              <img src="${imageUrl}" alt="${item.title}" class="card-img-cart w-20 h-20 object-contain">
+            </div>
+            <div class="flex-grow">
+              <h3 class="font-semibold text-gray-800 line-clamp-1">${item.title || 'Product'}</h3>
+              <p class="text-sm text-gray-500 mt-0.5">${item.category || ''}</p>
+              <div class="flex items-center gap-4 mt-2 flex-wrap">
+                <span class="font-bold text-indigo-700">$${itemPrice.toFixed(2)}</span>
+                
+                <!-- quantity selector -->
+                <div class="flex items-center border border-gray-300 rounded-full">
+                  <button class="qty-decrease px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-l-full" data-id="${item.id}"><i class="fa-solid fa-minus"></i></button>
+                  <span class="qty-display px-3 py-1 text-sm font-medium w-8 text-center" data-id="${item.id}">${itemQuantity}</span>
+                  <button class="qty-increase px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-r-full" data-id="${item.id}"><i class="fa-solid fa-plus"></i></button>
+                </div>
+
+                <!-- remove button -->
+                <button class="remove-item text-rose-600 hover:text-rose-800 text-sm ml-auto sm:ml-0" data-id="${item.id}"><i class="fa-regular fa-trash-can mr-1"></i> Remove</button>
+              </div>
+            </div>
+          `;
+          container.appendChild(itemDiv);
+        });
+
+        // attach event listeners after rendering
+        attachCartItemEvents();
+      }
+
+      // attach quantity and remove events
+      function attachCartItemEvents() {
+        // decrease buttons
+        document.querySelectorAll('.qty-decrease').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            const item = cart.find(p => p.id == id);
+            if (item) {
+              if (item.quantity > 1) {
+                item.quantity -= 1;
+              } else {
+                // remove if quantity becomes 0
+                cart = cart.filter(p => p.id != id);
+              }
+              saveAndRefresh();
+              gsap.fromTo(btn.closest('.cart-item-row'), { opacity: 0.6 }, { opacity: 1, duration: 0.3 });
+            }
+          });
+        });
+
+        // increase buttons
+        document.querySelectorAll('.qty-increase').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const id = btn.dataset.id;
+            const item = cart.find(p => p.id == id);
+            if (item) {
+              item.quantity = (item.quantity || 1) + 1;
+              saveAndRefresh();
+            }
+          });
+        });
+
+        // remove buttons
+        document.querySelectorAll('.remove-item').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const id = btn.dataset.id;
+            cart = cart.filter(p => p.id != id);
+            saveAndRefresh();
+            gsap.to(btn.closest('.cart-item-row'), { x: 20, opacity: 0, duration: 0.2, onComplete: () => renderCartItems() });
+          });
+        });
+      }
+
+      // update subtotal, total (assuming fixed shipping 5.99)
+      function updateSummary() {
+        const subtotalElem = document.getElementById('subtotalAmount');
+        const totalElem = document.getElementById('totalAmount');
+        const shippingElem = document.getElementById('shippingEstimate');
+        if (!subtotalElem || !totalElem) return;
+
+        const subtotal = cart.reduce((acc, i) => acc + (i.price || 0) * (i.quantity || 1), 0);
+        const shipping = cart.length > 0 ? 5.99 : 0; // free shipping if empty? better zero
+        const total = subtotal + shipping;
+
+        subtotalElem.innerText = `$${subtotal.toFixed(2)}`;
+        if (shippingElem) shippingElem.innerText = cart.length ? `$5.99` : `$0.00`;
+        totalElem.innerText = `$${total.toFixed(2)}`;
+      }
+
+      // initial load and render
+      loadCart();
+      updateCartCount();
+      // show loading spinner briefly (simulate sophisticated loading)
+      if (!cart.length) {
+        // already empty -> just render empty
+        renderCartItems();
+        updateSummary();
+      } else {
+        // optional loading spinner for UX complexity (but we can render directly)
+        renderCartItems();
+        updateSummary();
+      }
+
+      // ---------- HAMBURGER (unique) ----------
+      const menuBtn = document.getElementById('mobileMenuBtn');
+      const mobileMenu = document.getElementById('mobileMenu');
+      if (menuBtn) {
+        menuBtn.addEventListener('click', () => {
+          menuBtn.classList.toggle('open');
+          mobileMenu.classList.toggle('hidden');
+        });
+      }
+
+      // ---------- GSAP ENTRANCE ----------
+      gsap.from('.cart-item-row', { opacity: 0, y: 20, stagger: 0.1, duration: 0.6, ease: 'power2.out' });
+      gsap.from('.sticky', { opacity: 0, x: 30, duration: 0.8, delay: 0.3 });
+
+      // ---------- CHECKOUT BUTTON (just demo) ----------
+      document.getElementById('checkoutBtn')?.addEventListener('click', () => {
+        if (cart.length === 0) {
+          alert('Your cart is empty — add some products first!');
+        } else {
+          alert('Thank you! (This is a demo — proceed to integrated payment.)');
+        }
+      });
+
+      // listen to storage changes (if cart updated from another tab)
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'swiftcart_cart') {
+          loadCart();
+          saveAndRefresh(); // will re-render
+        }
+      });
+
+    })();
+  </script>
+
+  <!-- ensure cart update on back/forward nav -->
+  <script>
+    window.addEventListener('pageshow', () => {
+      // reload cart in case of modifications
+      const event = new Event('storage');
+      window.dispatchEvent(event);
+    });
+  </script>
+
+  <!-- hidden empty message reference kept inside container fallback -->
+  <div id="emptyCartMessage" class="text-center py-16 text-gray-400 hidden">
+    <i class="fa-solid fa-box-open text-6xl mb-4"></i>
+    <p class="text-xl">Your cart is empty</p>
+    <a href="products.html" class="inline-block mt-6 bg-indigo-600 text-white px-6 py-3 rounded-full hover:bg-indigo-700 transition"><i class="fa-solid fa-arrow-left mr-2"></i>Continue shopping</a>
+  </div>
+</body>
+</html>
